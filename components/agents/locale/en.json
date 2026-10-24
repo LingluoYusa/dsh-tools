@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "AGENTS.md periodic inject",
+    "description": "Re-injects ~/.dsh/AGENTS.md into the context after every N turns."
+  }
+}

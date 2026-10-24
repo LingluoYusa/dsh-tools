@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AGENTS.md periodic re-anchor">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0f172a"/>
+  <path d="M16 11h20l11 11v31a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V15a4 4 0 0 1 4-4z" fill="#e2e8f0"/>
+  <path d="M36 11l11 11H38a2 2 0 0 1-2-2z" fill="#94a3b8"/>
+  <path d="M20 30h16M20 38h11" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+  <path d="M39 53h7a7 7 0 0 1 0-14h-3" fill="none" stroke="#0ea5e9" stroke-width="3.5" stroke-linecap="round"/>
+  <polygon points="43,34 43,44 36,39" fill="#0ea5e9"/>
+</svg>

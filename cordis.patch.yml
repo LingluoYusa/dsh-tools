@@ -1,0 +1,12 @@
+- insert:
+    - id: dsh-tools-agents
+      name: 'dsh-tools/agents'
+      config:
+        enabled: true
+        everyTurns: 10
+        maxSourceBytes: 1048576
+        maxInjectBytes: 16384
+        truncateOversize: true
+        wrapSystemReminder: true
+        onlyIfChanged: false
+        includeSubagents: false
