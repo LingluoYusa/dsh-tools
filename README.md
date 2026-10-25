@@ -1,12 +1,12 @@
 # dsh-tools
 
-DSH 工具整合包。bundle 本身只做组合，运行时内容全部由子模块提供；每个子模块在 Plugins 页有自己的行与 Configure 二级配置页。
+DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在 Plugins 页有自己的行与 Configure 二级配置页。
 
-- 包名 `dsh-tools` 版本 `1.0.6`
-- 当前子模块 `dsh-tools-ami`（目录 `packages/ami`）中文名「记忆回声」：每 N 轮结束后把 `~/.dsh/AGENTS.md` 重新写进下一轮上下文
-- bundle 的 `cordis.patch.yml` 为每个子模块插入一行：`id` 是子模块 row id，`name` 是子模块包名（裸包名）
-- 子模块包自带 Host 半边与 Client 半边；Client 注册 `plugins.row.config`，key 为 `<bundle 包名>#<row id>`
-- 子模块作为 bundle 的 `dependencies` 从同一仓库的 `#path:` 子目录安装，一次 git 安装同时得到两者 见第 10 节
+- 包名 `dsh-tools` 版本 `1.0.7`
+- 当前子模块 `dsh-tools-ami`（目录 `components/ami`）中文名「记忆回声」：每 N 轮结束后把 `~/.dsh/AGENTS.md` 重新写进下一轮上下文
+- `cordis.patch.yml` 插入两行：包根裸包名行 `dsh-tools`（只承载 Client 配置页，无设置）与子模块行 `dsh-tools-ami`（`name: 'dsh-tools/ami'`，Host 实现与 8 字段 config）
+- Client 半边在包根 `client.js` 注册 `plugins.row.config`，key 为 `<bundle 包名>#<row id>`
+- 单包一次 git 安装即可；拆分为独立子模块包需要子模块已发布到 npm 见 10.2
 
 ---
 
@@ -50,15 +50,15 @@ DSH 工具整合包。bundle 本身只做组合，运行时内容全部由子模
 用户可达路径：
 
 1. 侧栏 **Plugins** → **Installed plugins** → **dsh-tools**（打开 bundle 详情页）；
-2. 在行列表里找到 **记忆回声**（row id `dsh-tools-ami`）点该行标题上的 **Configure** 控件；
-3. 打开的二级页面提供 7 个设置控件，并保留「保存」「恢复默认值」和「打开 AGENTS.md」。
+2. 行列表里有两条：`dsh-tools` 是包根承载行（没有设置，只用来加载 Client 配置页），**记忆回声**（row id `dsh-tools-ami`）是子模块行；
+3. 点 **记忆回声** 行标题上的 **Configure**，二级页面提供 7 个设置控件，并保留「保存」「恢复默认值」和「打开 AGENTS.md」。
 
-**新增子模块的方式**：bundle `cordis.patch.yml` 插入新行（`id` = 新 row id，`name` = 新子模块包名）；子模块包提供自己的 Host `Config`/`apply` 与 Client 半边，Client 注册 `plugins.row.config` key 为 `dsh-tools#<新 row id>`。子模块包必须是裸包名行 原因见 10.2。
+**新增子模块的方式**：`cordis.patch.yml` 插入新行（`id` = 新 row id，`name` = 新子模块的模块路径如 `dsh-tools/<name>`）；子模块 Host 实现放在 `components/<name>/`；包根 `client.js` 为新 row id 追加一个 `plugins.row.config` 注册（key `dsh-tools#<新 row id>`）。包根的裸包名承载行只需要一条，所有子模块共用。
 
-**不在 Settings 面板里**。官方机制原话：A plugin that carries its own configuration renders it on this page rather than in Settings。bundle 被关闭时该行不出现 Configure 控件，需先在 Plugins 页启用。
+**不在 Settings 面板里**。官方机制原话：A plugin that carries its own configuration renders it on this page rather than in Settings。bundle 被关闭时该行不出现 Configure 控件，需先在 Plugins 页启用。包根承载行被单独关闭时同样会失去 Configure 页面，Host 注入不受影响。
 
 - 8 个字段全部 `.volatile()`：`settings.write` 对非 volatile 路径直接抛 `Config field "..." is not volatile`，设置表单也只投影 volatile 字段。漏掉一个字段的症状是该字段根本不进表单。
-- 页面注册在 slot `plugins.row.config`，注册 key 为 `dsh-tools#dsh-tools-ami`（`<bundle 包名>#<row id>`），由子模块 `dsh-tools-ami` 的 `client.js` 注册；Host settings namespace 为 `dsh-tools-ami`（= bundle patch 里 insert entry 的 `id`）。
+- 页面注册在 slot `plugins.row.config`，注册 key 为 `dsh-tools#dsh-tools-ami`（`<bundle 包名>#<row id>`），由包根 `client.js` 注册；Host settings namespace 为 `dsh-tools-ami`（= `cordis.patch.yml` 里子模块 insert entry 的 `id`）。
 - 写入走 Client 表单的 `form.mutate([{ op:"set", path:[key], value }], revision)`，持久化、revision 冲突检测、原子写与失败回滚全部由官方 `dsh-config-editor` 承担，`applies: "live"` 无需重启会话。
 - 子模块在每次 `agent/pre-step` 与 `agent/created` **现读并解包** volatile 字段（volatile 变更不会重新调用 `apply`，因此不能把解包结果缓存成闭包常量）。
 
@@ -107,7 +107,7 @@ DSH 工具整合包。bundle 本身只做组合，运行时内容全部由子模
 | # | 内容 | 影响 |
 | --- | --- | --- |
 | U3 | 压缩（compaction）是否吞掉注入 | 重锚效果未知；按「可能被吞掉、下一个命中轮号重发」设计，不假设免疫 |
-| U5 | 行「记忆回声」的 Configure 控件与 7 个控件渲染 | 机制与 `dsh-delete-session` 相同（子模块包裸包名行 + `plugins.row.config`）仍需重启 DSH 后**运行时实测** |
+| U5 | 行「记忆回声」的 Configure 控件与 7 个控件渲染 | 机制与 `dsh-delete-session` 相同（裸包名承载行加载 Client + `plugins.row.config`）仍需重启 DSH 后**运行时实测**；包根承载行 `dsh-tools` 无设置属预期 |
 | B10 | 渲染层对未知 `source.kind` 的处理 | 显示形态未知；写入侧已由 shipped 插件证明可行 |
 | B8 | fork 后轮号是否重置 | 判定完全由轮号决定 两种情况行为都自洽 |
 | B9 | resume 是否重放同一 turn 的 step>1 | 可能造成注入位置偏移 仍只注入一次 |
@@ -135,34 +135,34 @@ DSH 工具整合包。bundle 本身只做组合，运行时内容全部由子模
 
 经 `plugin_manager` 的 `install_bundle`（本地目录为 linked 安装）与 `remove_bundle` 完成。**不要**手工改 profile 的 `package.json` 或 `cordis.patch.yml`。
 
-bundle 只有一个安装入口 子模块由依赖自动带入：
+单包一次安装即可：
 
 1. `install_bundle` 指向仓库地址 `github:LingluoYusa/dsh-tools` 或本地工作区 `D:\YhhCode\MyProject\dsh-tools`；
-2. bundle 的 `dependencies` 用同一仓库的子目录声明子模块：`"dsh-tools-ami": "git+https://github.com/LingluoYusa/dsh-tools.git#path:/packages/ami"`，pnpm 安装 bundle 时会一并拉取子模块；
-3. profile 使用 hoisted 链接方式，子模块包会被提升到 profile 的 `node_modules` 顶层，行模块名 `dsh-tools-ami` 因此可直接解析；
-4. 重启 DSH 进程并刷新浏览器页面。
+2. 重启 DSH 进程并刷新浏览器页面。
 
 **注意**：
 
-- `github:` 复制安装取的是仓库快照。改工作区后必须提交并推送，再在 Plugins 页 Update 或重新安装；
-- 本地 `link:` 安装不会安装 bundle 的依赖，子模块不会被带入；联调子模块时请改用 git 安装；
-- 释放子模块版本时同时更新 bundle 与 `packages/ami` 的 `version`，并确认 `#path:` 依赖解析到同一提交；
+- `github:` 复制安装取的是仓库快照。改工作区后必须提交并推送，再在 Plugins 页 Remove 后重新 Add（第三方 git 包没有 Update 按钮）；
+- `link:` 本地安装可直接联调 改动即生效 但 Host 模块变更仍需重启 DSH；
 - 判断是否真的生效看 `plugin_manager` 结果的 `application` 字段（`applied` / `restart-required` / `overridden` / `failed`），以及 Plugins 页是否出现「记忆回声」行的 Configure 控件。
 
 ### 10.1 新配置记录与入口
 
-- 子模块 row id、Host Config namespace、Client namespace 均为 `dsh-tools-ami`；行模块名是子模块包名 `dsh-tools-ami`。
-- bundle `cordis.patch.yml` 插入 profile 的 entry：`id: dsh-tools-ami` / `name: 'dsh-tools-ami'`；`Config` 与 `apply` 由子模块包根入口提供。
+- 子模块 row id、Host Config namespace、Client namespace 均为 `dsh-tools-ami`；行模块名是 `dsh-tools/ami`。
+- `cordis.patch.yml` 插入 profile 的两个 entry：`id: dsh-tools` / `name: 'dsh-tools'`（包根承载行，只加载 Client 配置页）与 `id: dsh-tools-ami` / `name: 'dsh-tools/ami'`（子模块行，`Config` 与 `apply` 在这里）。
 - Client 配置页注册到 `plugins.row.config`，key 为 `dsh-tools#dsh-tools-ami`。
 - 旧 `dsh-ami`、`dsh-tools-agents` 等历史配置记录不读取、不迁移、不删除。子模块从默认值开始，保存后由官方机制写入 profile patch 的新 entry；本项目不创建或维护物理配置目录。
 - API 使用 `/api/dsh-tools/ami/open-agents`；Client 字典为 `settings.dshToolsAmi`，表单 DOM 前缀为 `dsh-tools-ami-`。AGENTS.md 仍从既有 dsh home 读取，`source.kind` 与周期注入规则不变。
 - 仅修改工作区源码，未安装插件或操作 profile。安装并重启 DSH、刷新页面后验证行与 Configure 页面。
 
-### 10.2 为什么子模块是独立包
+### 10.2 为什么需要包根承载行 而不是拆独立包
 
-`@deepseek-ai/dsh-client-modules` 只把包的浏览器半边挂到 specifier 为裸包名的 Loader 行：`exactPackageSpecifier()` 对含 `/` 或 `:` 的 specifier 返回 `undefined` 该行不产出 client source。若把子模块写成 bundle 内的子路径行（例如 `dsh-tools/ami`）则行上的 `client.js` 永远不会加载 行也就没有 Configure 入口。
+两个框架约束共同决定当前结构：
 
-官方多子模块整合包 `@deepseek-ai/dsh-experimental-agent-team-profile` 的形态是：bundle 本身只出 `cordis.patch.yml` 与元数据，每个子模块是独立包，patch 为每个子模块插入一行且行模块名是该子模块的裸包名。本包按同一形态组织：bundle 用 `dependencies` 的 `git+...#path:/packages/ami` 拉取子模块，profile 的 hoisted 安装把子模块提升到顶层，于是行名可直接解析、子模块的 Client 配置页也能注册。
+1. `@deepseek-ai/dsh-client-modules` 只把包的浏览器半边挂到 specifier 为裸包名的 Loader 行：`exactPackageSpecifier()` 对含 `/` 或 `:` 的 specifier 返回 `undefined` 该行不产出 client source。子路径行 `dsh-tools/ami` 无法加载 `client.js` 因此需要一条包根行 `name: 'dsh-tools'` 来承载配置页。
+2. DSH 安装策略启用了 `blockExoticSubdeps`：子依赖不允许 git/URL/tarball/file 这类非 registry 来源。官方多子模块整合包 `@deepseek-ai/dsh-experimental-agent-team-profile` 的子模块都是已发布到 npm 的独立包；本包若把子模块做成独立包、再用同仓库的 `git+...#path:` 依赖引入 安装时会被拒绝并报 `ERR_PNPM_EXOTIC_SUBDEP`。
+
+因此当前采用单包结构：包根承载行加载 Client 配置页，子模块以子路径行 + 独立 Host 实现存在，所有子模块共用一条承载行。等功能稳定后若把子模块发布为 npm 包，可以再切回独立包形态（行名改成裸包名 去掉承载行）。
 
 ## 11. 不做什么
 
@@ -176,13 +176,13 @@ bundle 只有一个安装入口 子模块由依赖自动带入：
 
 ## 附. 与实现规格的偏差记录
 
-1. `packages/ami/lib/logic.js` 之外的三个裸包名由静态 import 改为惰性动态 import + 降级（见第 9 节）。
+1. `lib/logic.js` 之外的三个裸包名由静态 import 改为惰性动态 import + 降级（见第 9 节）。
 2. `source.kind` 采用实现规格 §2.2 冻结值 `"agents-md-periodic-inject"`。
 3. 新增一条降级告警 `build-fallback`，用于 `createUserMessage` 不可用时的手动构造路径。
 4. `buildMessage` 因动态 import 变为 `async`。
-5. `packages/ami/index.js` 超过 impl-spec §1 的 160 行建议上限。原因：惰性依赖及降级诊断、可选服务防御、有限字节读取与版本缓存校验、插件与 agent 生命周期闸门。
-6. 子模块 `package.json` 新增依赖声明：`dependencies` 写 `@deepseek-ai/schemastery ~3.18.5`，`peerDependencies` 写 `@deepseek-ai/cosmokit ~1.8.6` 与 `@deepseek-ai/dsh-llm` / `@deepseek-ai/dsh-home-paths` 的 `*`。
+5. `components/ami/index.js` 超过 impl-spec §1 的 160 行建议上限。原因：惰性依赖及降级诊断、可选服务防御、有限字节读取与版本缓存校验、插件与 agent 生命周期闸门。
+6. `package.json` 新增依赖声明：`dependencies` 写 `@deepseek-ai/schemastery ~3.18.5`，`peerDependencies` 写 `@deepseek-ai/cosmokit ~1.8.6` 与 `@deepseek-ai/dsh-llm` / `@deepseek-ai/dsh-home-paths` 的 `*`。
 7. 新增两条一次性诊断告警键 `agents-unavailable` 与 `home-fallback`。
-8. `packages/ami/lib/logic.js` 具名导出 19 个（5 常量 + 13 函数 + `resolveSettings`）。
+8. `lib/logic.js` 具名导出 19 个（5 常量 + 13 函数 + `resolveSettings`）。
 9. **task-3 配置页改造**：`Config` 8 个字段全部 `.volatile()`；新增 `resolveSettings` 统一解包；Client 表单注册 `plugins.row.config`。
-10. **1.0.6 多子模块化**：bundle `dsh-tools` 只保留组合 `cordis.patch.yml`、bundle locale/icon 与空 `apply`；Host 实现、`lib/logic.js` 与 Client 半边整体移入 `packages/ami`（包名 `dsh-tools-ami`，显示名「记忆回声」），row id、Config namespace 与 Client key 改为 `dsh-tools-ami` / `dsh-tools-ami` / `dsh-tools#dsh-tools-ami`；子模块通过 bundle `dependencies` 的同仓库 `#path:` git 依赖带入，保证一次 git 安装即可用。
+10. **1.0.7 单包多子模块**：`cordis.patch.yml` 插入包根承载行 `id/name = dsh-tools` 与子模块行 `id: dsh-tools-ami` / `name: 'dsh-tools/ami'`；Host 实现位于 `components/ami` 显示名「记忆回声」（row id、Config namespace、Client key 为 `dsh-tools-ami` / `dsh-tools-ami` / `dsh-tools#dsh-tools-ami`）；包根 `client.js` 为子模块行注册 Configure 页；不拆独立包 因为 DSH 的 `blockExoticSubdeps` 禁止 git 子依赖 见 10.2。

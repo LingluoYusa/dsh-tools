@@ -1,7 +1,7 @@
-// dsh-tools-ami Client 半边 为 记忆回声 行提供 Configure 二级页
-// 子模块行是裸包名 浏览器半边挂在该行上
+// dsh-tools Client 半边 为子模块行提供 Configure 二级页
+// 本包根的裸包名行才能加载浏览器半边
 window.__ModuleLoader__.load({
-  id: "dsh-tools-ami",
+  id: "dsh-tools",
   factory(require) {
     const React = require("react");
     const h = React.createElement;

@@ -1,3 +1,3 @@
-// dsh-tools 整合包入口 只做组合 patch 不注册行
-// 子模块由 cordis.patch.yml 插入 当前为 dsh-tools-ami
+// dsh-tools 整合包入口 只承载包根裸包名行 用于加载 Client 配置页
+// 子模块 Host 实现位于 components/ami 由 patch 的 dsh-tools/ami 行加载
 export function apply() {}

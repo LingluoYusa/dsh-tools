@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   buildInstructionText, canRegisterForAgent, initialState, markAttempted, markInjected,
   planInjection, resolveSettings, shouldInject, warningKey,
-} from "./lib/logic.js";
+} from "../../lib/logic.js";
 
 const WARN = {
   missing: "agents-md-inject: AGENTS.md not found",

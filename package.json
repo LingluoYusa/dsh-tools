@@ -1,29 +1,50 @@
 {
   "name": "dsh-tools",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
   "description": "DSH 工具整合包 由多个子模块组成 每个子模块在 Plugins 页有独立的 Configure 二级页",
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
+    "./ami": "./components/ami/index.js",
+    "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
+    "./ami/locale/*.json": "./components/ami/locale/*.json",
     "./icon": "./icon.svg",
-    "./package.json": "./package.json"
+    "./ami/icon": "./components/ami/icon.svg"
   },
   "files": [
     "index.js",
+    "client.js",
+    "components/ami/index.js",
+    "components/ami/locale/*.json",
+    "components/ami/icon.svg",
+    "lib/logic.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
     "README.md"
   ],
   "dependencies": {
-    "dsh-tools-ami": "git+https://github.com/LingluoYusa/dsh-tools.git#path:/packages/ami"
+    "@deepseek-ai/schemastery": "~3.18.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cosmokit": "~1.8.6",
+    "@deepseek-ai/dsh-home-paths": "*",
+    "@deepseek-ai/dsh-llm": "*"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
     }
   }
 }

@@ -1,8 +1,11 @@
 # dsh-tools 整合包 patch 每个子模块插入一行
-# 行模块名是子模块包名 浏览器半边与行配置页挂在该行
+# 第一条是包根裸包名行 只承载 Client 配置页 第二条是子模块行
 - insert:
+    - id: dsh-tools
+      name: 'dsh-tools'
+
     - id: dsh-tools-ami
-      name: 'dsh-tools-ami'
+      name: 'dsh-tools/ami'
       config:
         enabled: true
         everyTurns: 10
