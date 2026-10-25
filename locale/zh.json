@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-tools",
-    "description": "DSH 工具整合包 由多个子模块组成 每个子模块在 Plugins 页有独立的 Configure 二级页"
+    "description": "DSH工具整合包 由多个工具子模块组成"
   }
 }
