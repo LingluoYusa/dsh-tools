@@ -2,12 +2,11 @@
 
 DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS.md 周期注入组件：每 N 轮结束后把 `~/.dsh/AGENTS.md` 重新写进下一轮上下文。
 
-- 包名 `dsh-tools` 版本 `1.0.2`
+- 包名 `dsh-tools` 版本 `1.0.4`
 - 组件导出 `dsh-tools/agents`（Host 实现）与 `dsh-tools/agents/locale/*`、`dsh-tools/agents/icon`；官方 profile patch 中的组件 entry id 为 `dsh-tools-agents`
 - 根 `index.js` 是无副作用整合包入口；组件 Host 实现在 `components/agents/index.js`
-- Client 半边 `client.js`（组件 row Configure 二级配置页，见第 5 节）
-- 磁盘目录当前仍为 `dsh-ami`，仅包名与导出标识正式改为 `dsh-tools`
-- 安装与让工作区改动生效的方式见第 10 节
+- 配置页由独立 companion 包 `dsh-tools-agents-ui`（目录 `ui/`）承载；该包用自己的裸包名 Loader 行加载 `dsh.client`
+- 根包与 companion 包需分别安装并同时启用 见第 5 节与第 10 节
 
 ---
 
@@ -48,6 +47,8 @@ DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS
 
 **设置仅显示在本行的 Configure 二级页面**，不在 bundle 详情一级页面直接展示。保留现有 7 个可编辑字段（3 个数字项和 4 个勾选项）；Host `enabled` 字段本次不新增到表单。
 
+**前提**：必须同时安装并启用 `dsh-tools`（Host 注入与 Config namespace `dsh-tools-agents`）与 companion 包 `dsh-tools-agents-ui`（承载 Client 配置页）。配置页注册 key 仍为 `dsh-tools#dsh-tools-agents`；关闭 `dsh-tools-agents-ui` 的 bundle 或它的行会失去 Configure 页面 Host 注入不受影响。
+
 用户可达路径：
 
 1. 侧栏 **Plugins** → **Installed plugins** → **dsh-tools**（打开 bundle 详情页）；
@@ -57,7 +58,7 @@ DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS
 **不在 Settings 面板里**。官方机制原话：A plugin that carries its own configuration renders it on this page rather than in Settings。bundle 被关闭时该行不出现 Configure 控件，需先在 Plugins 页启用。
 
 - 8 个字段全部 `.volatile()`：`settings.write` 对非 volatile 路径直接抛 `Config field "..." is not volatile`，设置表单也只投影 volatile 字段。漏掉一个字段的症状是该字段根本不进表单。
-- 页面注册在 slot `plugins.row.config`，注册 key 为 `dsh-tools#dsh-tools-agents`（`<bundle 包名>#<row id>`）；Host settings namespace 为 `dsh-tools-agents`（= `cordis.patch.yml` 里新 insert entry 的 `id`）。
+- 页面注册在 slot `plugins.row.config`，注册 key 为 `dsh-tools#dsh-tools-agents`（`<bundle 包名>#<row id>`），由 companion 包 `dsh-tools-agents-ui` 注册；Host settings namespace 为 `dsh-tools-agents`（= 根 `cordis.patch.yml` 里 insert entry 的 `id`）。
 - 写入走 Client 表单的 `form.mutate([{ op:"set", path:[key], value }], revision)`，持久化、revision 冲突检测、原子写与失败回滚全部由官方 `dsh-config-editor` 承担，`applies: "live"` 无需重启会话。
 - 插件在每次 `agent/pre-step` 与 `agent/created` **现读并解包** volatile 字段（volatile 变更不会重新调用 `apply`，因此不能把解包结果缓存成闭包常量）。
 
@@ -106,7 +107,7 @@ DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS
 | # | 内容 | 影响 |
 | --- | --- | --- |
 | U3 | 压缩（compaction）是否吞掉注入 | 重锚效果未知；按「可能被吞掉、下一个命中轮号重发」设计，不假设免疫 |
-| U5 | 配置页的 Configure 控件与 7 个控件渲染 | 已实现但**未在运行时实测**（本机是 github 复制安装，需先改 link 安装并重启 DSH 进程） |
+| U5 | 配置页的 Configure 控件与 7 个控件渲染 | 机制已修正（companion 包裸包名行承载 Client 半边）仍需重启 DSH 后**运行时实测** |
 | B10 | 渲染层对未知 `source.kind` 的处理 | 显示形态未知；写入侧已由 shipped 插件证明可行 |
 | B8 | fork 后轮号是否重置 | 判定完全由轮号决定 两种情况行为都自洽 |
 | B9 | resume 是否重放同一 turn 的 step>1 | 可能造成注入位置偏移 仍只注入一次 |
@@ -145,21 +146,33 @@ DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS
 
 经 `plugin_manager` 的 `install_bundle`（本地目录为 linked 安装）与 `remove_bundle` 完成。**不要**手工改 profile 的 `package.json` 或 `cordis.patch.yml`。
 
+仓库含两个可安装 bundle 必须分别安装：
+
+1. 根包（Host 注入与 Config namespace `dsh-tools-agents`）：`install_bundle` 指向工作区根目录 `D:\YhhCode\MyProject\dsh-tools`；
+2. companion 包（Plugins 页 Configure 二级页）：`install_bundle` 指向 `D:\YhhCode\MyProject\dsh-tools\ui`（包名 `dsh-tools-agents-ui`）。
+
+`github:` 安装只装仓库根的包 不会包含 `ui/` 目录；发布 companion 时需单独发布该包 或直接从本地 `ui` 目录安装。
+
 **让本工作区的改动生效**：profile 里若是 `github:` 的复制安装，改工作区**不生效**（`node_modules\dsh-tools` 是 tarball 解包出的普通目录）。需要：
 
-1. 用 `install_bundle` 指向工作区绝对路径（如 `D:\YhhCode\MyProject\dsh-ami`），依赖变为 `link:` 之后改工作区即改实际加载代码（link 安装不受 `files` 过滤）；
+1. 用 `install_bundle` 指向工作区绝对路径（根目录与 `ui` 目录各一次），依赖变为 `link:` 之后改工作区即改实际加载代码（link 安装不受 `files` 过滤）；
 2. 替换已安装包、以及 Host 侧 `components/agents/index.js` / `lib/logic.js` 的改动，都要**重启 DSH 进程**（Node 模块已缓存）；
-3. Client 侧 `client.js` 或 `package.json` 的 `dsh.client` 改动，保守做法同样是**重启 DSH 进程 + 刷新浏览器页面**，不要仅凭 slot id 不变就判定浏览器代码已更新。
+3. Client 侧 `ui/client.js` 或 `ui/package.json` 的 `dsh.client` 改动，保守做法同样是**重启 DSH 进程 + 刷新浏览器页面**，不要仅凭 slot id 不变就判定浏览器代码已更新。
 
 判断是否真的生效看 `plugin_manager` 结果的 `application` 字段（`applied` / `restart-required` / `overridden` / `failed`），以及 Plugins 页是否出现本行的 Configure 控件。
 
 ### 10.1 新配置记录与入口
 
-- 本版本正式组件模块名为 `dsh-tools/agents`，版本仍为 `1.0.2`；profile row id 为 `dsh-tools-agents`。它不是 `agents-md`，也不是官方 `@deepseek-ai/dsh-tools`。
-- `cordis.patch.yml` 插入官方 profile 的新 entry：row id、Host Config namespace 与 Client namespace 均为 `dsh-tools-agents`，Client key 为 `dsh-tools#dsh-tools-agents`。
+- 本版本正式组件模块名为 `dsh-tools/agents`，版本 `1.0.4`；profile row id 为 `dsh-tools-agents`。它不是 `agents-md`，也不是官方 `@deepseek-ai/dsh-tools`。
+- 根包 `cordis.patch.yml` 插入官方 profile 的新 entry：row id 与 Host Config namespace 均为 `dsh-tools-agents`。
+- 配置页行 `dsh-tools-agents-ui` 属于 companion bundle `dsh-tools-agents-ui`；Host namespace 仍是 `dsh-tools-agents`，Client key 为 `dsh-tools#dsh-tools-agents`。
 - 旧 `dsh-ami` 配置记录不读取、不迁移、不删除。新组件从默认值开始，保存后由官方机制写入 profile patch 的新 entry；本项目不创建或维护物理配置目录。
 - API 使用 `/api/dsh-tools/agents/open-agents`；Client 字典为 `settings.dshToolsAgents`，表单 DOM 前缀为 `dsh-tools-agents-`。AGENTS.md 仍从既有 dsh home 读取，`source.kind` 与周期注入规则不变。
-- 仅修改工作区源码，未安装插件或操作 profile。启用新 entry 后需重启 DSH 并刷新页面，验证新 row 与 Configure 页面。
+- 仅修改工作区源码，未安装插件或操作 profile。两个 bundle 都启用后需重启 DSH 并刷新页面，验证 row 与 Configure 页面。
+
+### 10.2 配置页为何独立成包
+
+`@deepseek-ai/dsh-client-modules` 只把包的浏览器半边挂到 specifier 为裸包名的 Loader 行。根包的组件行是子路径 `dsh-tools/agents` 它不是包根 不会被识别 因此该行的 `dsh.client` 永远不会进入浏览器模块图 子路径行上的 `plugins.row.config` 注册也就不会发生 行上没有 Configure 入口。companion 包 `dsh-tools-agents-ui` 用自己的裸包名行 `dsh-tools-agents-ui` 承载客户端配置页 根包只保留 Host 组件行。详见 `ui/README.md`。
 
 ## 11. 不做什么
 
@@ -182,3 +195,4 @@ DSH 工具整合包，包含对原有组件的增强模块。当前包含 AGENTS
 7. 新增两条一次性诊断告警键 `agents-unavailable`（task-12 I-2，agents 服务缺失不再静默）与 `home-fallback`（task-12 I-4，dsh-home-paths 降级时输出解析错误）。
 8. `lib/logic.js` 具名导出原为 **18 个**（5 常量 + 13 函数）。
 9. **task-3 配置页改造**：`Config` 8 个字段全部 `.volatile()`；`lib/logic.js` 新增统一解包纯函数 `resolveSettings`（具名导出 18 → **19 个**，仍为零 import）；现由 `components/agents/index.js` 读取设置并注册 Host 行为，根 `index.js` 仅为空 apply 整合包入口；Client 半边 `client.js` 注册到 `plugins.row.config`，key `dsh-tools#dsh-tools-agents`；`package.json` 增加 `exports["./agents"]`、`exports["./agents/locale/*.json"]`、`exports["./agents/icon"]` 与根 `./client`、`files` 中的组件资源及 `dsh.client`；`locale/*.json` 为根 dsh-tools metadata，`components/agents/locale/*.json` 保留 AGENTS.md 周期注入组件 metadata；`cordis.patch.yml` 使用可解析的组件模块名 `dsh-tools/agents`，row id 与 Config namespace 为 `dsh-tools-agents`，8 字段完整覆盖语义不变。
+10. **1.0.4 配置页拆分**：根包删除 `client.js`、`exports["./client"]`、`files` 中的 `client.js` 与整个 `dsh.client`；新增 companion 包 `ui/`（`dsh-tools-agents-ui` 1.0.4）以自己的裸包名行承载 Client 配置页 注册 key 仍为 `dsh-tools#dsh-tools-agents`；根包 `cordis.patch.yml`、Host 实现与设置写入语义不变。

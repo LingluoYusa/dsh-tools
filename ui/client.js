@@ -1,7 +1,7 @@
-// dsh-tools-agents Client 半边 在 Plugins 页注册全参数配置页
-// 自持 configForms controller 仅挂 row Configure 二级页
+// dsh-tools-agents-ui Client 半边 为 dsh-tools/agents 行提供 Configure 二级页
+// 独立 companion 包 自身的裸包名行才能加载浏览器半边
 window.__ModuleLoader__.load({
-  id: "dsh-tools",
+  id: "dsh-tools-agents-ui",
   factory(require) {
     const React = require("react");
     const h = React.createElement;

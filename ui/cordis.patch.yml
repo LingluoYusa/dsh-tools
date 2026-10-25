@@ -1,0 +1,4 @@
+# dsh-tools-agents-ui bundle patch 插入裸包名行以加载 Client 配置页
+- insert:
+    - id: dsh-tools-agents-ui
+      name: 'dsh-tools-agents-ui'
