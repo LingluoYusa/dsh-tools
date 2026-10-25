@@ -1,7 +1,7 @@
-// dsh-tools-agents-ui Client 半边 为 dsh-tools/agents 行提供 Configure 二级页
-// 独立 companion 包 自身的裸包名行才能加载浏览器半边
+// dsh-tools Client 半边 为 dsh-tools-agents 行提供 Configure 二级页
+// 行的模块名必须是裸包名 浏览器半边才会被加载
 window.__ModuleLoader__.load({
-  id: "dsh-tools-agents-ui",
+  id: "dsh-tools",
   factory(require) {
     const React = require("react");
     const h = React.createElement;

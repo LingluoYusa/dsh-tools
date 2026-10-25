@@ -1,6 +1,6 @@
 - insert:
     - id: dsh-tools-agents
-      name: 'dsh-tools/agents'
+      name: 'dsh-tools'
       config:
         enabled: true
         everyTurns: 10
