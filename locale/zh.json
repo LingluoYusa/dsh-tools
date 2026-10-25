@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-tools",
-    "description": "DSH 工具整合包，包含对原有组件的增强模块"
+    "description": "DSH 工具整合包 由多个子模块组成 每个子模块在 Plugins 页有独立的 Configure 二级页"
   }
 }

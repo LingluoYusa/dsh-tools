@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "AGENTS.md 周期注入",
-    "description": "每 N 轮结束后把 ~/.dsh/AGENTS.md 重新写入下一轮上下文。"
-  }
-}

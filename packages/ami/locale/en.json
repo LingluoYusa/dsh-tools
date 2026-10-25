@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Memory Echo",
+    "description": "Periodically re-anchors ~/.dsh/AGENTS.md at the tail of the context so long sessions do not dilute it"
+  }
+}

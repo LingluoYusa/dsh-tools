@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-tools",
-    "description": "DSH tools bundle containing enhancement modules for existing components."
+    "description": "DSH tool bundle made of submodules each with its own Configure page under Plugins"
   }
 }

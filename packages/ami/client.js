@@ -1,17 +1,17 @@
-// dsh-tools Client 半边 为 dsh-tools-agents 行提供 Configure 二级页
-// 行的模块名必须是裸包名 浏览器半边才会被加载
+// dsh-tools-ami Client 半边 为 记忆回声 行提供 Configure 二级页
+// 子模块行是裸包名 浏览器半边挂在该行上
 window.__ModuleLoader__.load({
-  id: "dsh-tools",
+  id: "dsh-tools-ami",
   factory(require) {
     const React = require("react");
     const h = React.createElement;
 
     // 字典命名空间 与 Host settings 命名空间区分
-    const DICT_NS = "settings.dshToolsAgents";
-    // Host settings 命名空间 = cordis.patch.yml 里 insert 行的 id
-    const NS = "dsh-tools-agents";
+    const DICT_NS = "settings.dshToolsAmi";
+    // Host settings 命名空间 = 子模块 row id
+    const NS = "dsh-tools-ami";
     // 注册 key 必须等于 <bundle 包名>#<row id>
-    const ROW_KEY = "dsh-tools#dsh-tools-agents";
+    const ROW_KEY = "dsh-tools#dsh-tools-ami";
 
     const en = {
       title: "Plugin settings",
@@ -133,7 +133,7 @@ window.__ModuleLoader__.load({
     // 渲染单行 布尔一行 数字行外加字段级错误
     function renderField(field, view) {
       const hint = view.t(field.key + "Hint");
-      const controlId = "dsh-tools-agents-" + field.key;
+      const controlId = "dsh-tools-ami-" + field.key;
       const text = field.kind === "boolean"
         ? h("div", { key: "text", style: styles.rowText }, [
             h("label", { key: "label", htmlFor: controlId, style: styles.label }, view.t(field.key)),
@@ -332,17 +332,17 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       const t = ctx.locale.bind(DICT_NS);
       const openAgents = async () => {
-        const response = await fetch("/api/dsh-tools/agents/open-agents", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+        const response = await fetch("/api/dsh-tools/ami/open-agents", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
         let result;
         try { result = await response.json(); } catch { throw new Error("Invalid host response"); }
         if (!response.ok || result?.ok !== true) throw new Error(result?.error ?? "Unable to open AGENTS.md");
       };
-      ctx.effect(() => ctx.locale.register(DICT_NS, { zh, en }), "dsh-tools-agents: dictionaries");
+      ctx.effect(() => ctx.locale.register(DICT_NS, { zh, en }), "dsh-tools-ami: dictionaries");
       // controller 由 provider 共享拥有 只订阅不 dispose
       const form = ctx.configForms.get(NS);
       const Card = makeCard(form);
       const mount = (name, key) => ctx.effect(() => ctx.slots.inject(name, () =>
-        ctx.slots.register({ name, key, locale: DICT_NS }, (props) => h(Card, { ...props, openAgents }))), "dsh-tools-agents: " + name);
+        ctx.slots.register({ name, key, locale: DICT_NS }, (props) => h(Card, { ...props, openAgents }))), "dsh-tools-ami: " + name);
       // 仅挂载 row Configure 二级页
       mount("plugins.row.config", ROW_KEY);
     }

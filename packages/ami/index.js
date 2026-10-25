@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   buildInstructionText, canRegisterForAgent, initialState, markAttempted, markInjected,
   planInjection, resolveSettings, shouldInject, warningKey,
-} from "../../lib/logic.js";
+} from "./lib/logic.js";
 
 const WARN = {
   missing: "agents-md-inject: AGENTS.md not found",
@@ -116,14 +116,14 @@ const openAgentsFile = async () => {
 };
 const mountOpenAgentsRoute = (webServer, owner) => owner.effect(() => webServer.register({
   kind: "exact",
-  path: "/api/dsh-tools/agents/open-agents",
+  path: "/api/dsh-tools/ami/open-agents",
   handler: async (req, res) => {
     if (!guardOpenRequest(req, res)) return;
     if (req.method !== "POST") { sendJson(res, 405, { ok: false, error: "POST only" }); return; }
     try { await openAgentsFile(); sendJson(res, 200, { ok: true }); }
     catch (error) { sendJson(res, 404, { ok: false, error: String(error?.message ?? error) }); }
   },
-}), "dsh-tools-agents: open AGENTS.md");
+}), "dsh-tools-ami: open AGENTS.md");
 
 const SOURCE = { kind: "agents-md-periodic-inject" };
 const hashText = (text) => createHash("sha256").update(text).digest("hex");

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "记忆回声",
+    "description": "周期性把 ~/.dsh/AGENTS.md 重新锚定到上下文尾部 降低长会话里的指令稀释"
+  }
+}
