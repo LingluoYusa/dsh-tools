@@ -5,7 +5,7 @@ import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  buildInstructionText, canRegisterForAgent, initialState, markAttempted, markInjected,
+  decideInjection, buildInstructionText, canRegisterForAgent, initialState, markAttempted, markInjected,
   planInjection, resolveSettings, shouldInject, warningKey,
 } from "../../lib/logic.js";
 
@@ -24,7 +24,7 @@ const WARN = {
 };
 const READ_WARNINGS = { missing: WARN.missing, "source-oversize": WARN.sourceOversize, "read-error": WARN.readError };
 
-// 8 个字段全部 volatile 配置页经 configForms 写入
+// 9 个字段全部 volatile 配置页经 configForms 写入
 // 非 volatile 路径会被 settings.write 拒绝 因此表单只投影 volatile 字段
 export const Config = z.object({
   enabled: z.boolean().default(true).volatile(),
@@ -35,6 +35,7 @@ export const Config = z.object({
   wrapSystemReminder: z.boolean().default(true).volatile(),
   onlyIfChanged: z.boolean().default(false).volatile(),
   includeSubagents: z.boolean().default(false).volatile(),
+  injectOnChange: z.boolean().default(false).volatile(),
 });
 
 // P1 主 agent 判定 必须用 includes 不能用 length 并发下会误判
@@ -216,7 +217,12 @@ function registerForAgent(ctx, readSettings, agent, states, warned, isGeneration
       const settings = readSettings();
       // 主开关现读 关掉后已存在的 agent 下一个命中轮号即停
       if (settings.enabled !== true) return next();
-      if (!shouldInject(payload.turn, settings.everyTurns, state)) return next();
+      const watch = settings.injectOnChange === true;
+      const hit = shouldInject(payload.turn, settings.everyTurns, state);
+      // 未命中且未开启内容变更监听 不读盘直接放行
+      if (!hit && !watch) return next();
+      // 同 turn 只检查一次 避免每 step 重复读盘或重复注入
+      if (watch && state.attemptedTurn === payload.turn) return next();
       markAttempted(state, payload.turn);
       payload.signal.throwIfAborted();
       const read = await readAgentsMd(ctx, settings, payload.signal, cache, isCurrent);
@@ -233,7 +239,8 @@ function registerForAgent(ctx, readSettings, agent, states, warned, isGeneration
         return next();
       }
       const digest = hashText(plan.text);
-      if (settings.onlyIfChanged === true && digest === state.lastInjectedHash) return next();
+      // 内容变更优先 其次是命中轮号 命中时再看 onlyIfChanged
+      if (decideInjection(payload.turn, settings, state, digest).action !== "inject") return next();
       if (!isCurrent()) return next();
       payload.signal.throwIfAborted();
       const decision = await next();

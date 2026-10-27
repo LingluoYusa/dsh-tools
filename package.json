@@ -1,6 +1,6 @@
 {
   "name": "dsh-tools",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "description": "DSH 工具整合包 由多个子模块组成 每个子模块在 Plugins 页有独立的 Configure 二级页",

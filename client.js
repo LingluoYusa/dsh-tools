@@ -33,6 +33,8 @@ window.__ModuleLoader__.load({
       onlyIfChangedHint: "When checked, skip a hit turn while the file content is unchanged.",
       includeSubagents: "Include subagents",
       includeSubagentsHint: "Only affects agents created after the change.",
+      injectOnChange: "Inject immediately on change",
+      injectOnChangeHint: "When checked, each step checks AGENTS.md and injects on change, restarting the interval count.",
       save: "Save",
       reset: "Restore defaults",
       saving: "Saving...",
@@ -63,6 +65,8 @@ window.__ModuleLoader__.load({
       onlyIfChangedHint: "勾选后命中轮号发现内容与上次注入相同则跳过。",
       includeSubagents: "对子智能体生效",
       includeSubagentsHint: "只影响改动之后新建的 agent。",
+      injectOnChange: "内容改变则立即注入",
+      injectOnChangeHint: "勾选后每次执行前检查 AGENTS.md 内容 有变化立即注入并重新计算注入间隔。",
       save: "保存",
       reset: "恢复默认值",
       saving: "保存中...",
@@ -73,7 +77,7 @@ window.__ModuleLoader__.load({
       unavailable: "该插件当前未加载 暂时无法配置。",
     };
 
-    // 二级 Configure 页保留 7 个字段 不新增 enabled
+    // 二级 Configure 页保留 8 个字段 不新增 enabled
     // min max step 必须与 Config 的 min() max() step() 逐项一致
     const FIELDS = [
       { key: "everyTurns", kind: "number", min: 1, max: 1000, step: 1 },
@@ -83,6 +87,7 @@ window.__ModuleLoader__.load({
       { key: "wrapSystemReminder", kind: "boolean" },
       { key: "onlyIfChanged", kind: "boolean" },
       { key: "includeSubagents", kind: "boolean" },
+      { key: "injectOnChange", kind: "boolean" },
     ];
 
     // 只用 --dsw-alias token 不写死颜色值

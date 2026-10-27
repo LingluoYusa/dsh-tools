@@ -2,9 +2,9 @@
 
 DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在 Plugins 页有自己的行与 Configure 二级配置页。
 
-- 包名 `dsh-tools` 版本 `1.0.7`
-- 当前子模块 `dsh-tools-ami`（目录 `components/ami`）中文名「记忆回声」：每 N 轮结束后把 `~/.dsh/AGENTS.md` 重新写进下一轮上下文
-- `cordis.patch.yml` 插入两行：包根裸包名行 `dsh-tools`（只承载 Client 配置页，无设置）与子模块行 `dsh-tools-ami`（`name: 'dsh-tools/ami'`，Host 实现与 8 字段 config）
+- 包名 `dsh-tools` 版本 `1.0.8`
+- 当前子模块 `dsh-tools-ami`（目录 `components/ami`）中文名「记忆回声」：每 N 轮结束后把 `~/.dsh/AGENTS.md` 重新写进下一轮上下文 可选内容变化时立即注入
+- `cordis.patch.yml` 插入两行：包根裸包名行 `dsh-tools`（只承载 Client 配置页，无设置）与子模块行 `dsh-tools-ami`（`name: 'dsh-tools/ami'`，Host 实现与 9 字段 config）
 - Client 半边在包根 `client.js` 注册 `plugins.row.config`，key 为 `<bundle 包名>#<row id>`
 - 单包一次 git 安装即可；拆分为独立子模块包需要子模块已发布到 npm 见 10.2
 
@@ -28,6 +28,16 @@ DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在
 
 语义是**严格「N 轮结束后、下一轮生效」**。`N = 1` 时第 1 轮不注入、从第 2 轮起每轮注入，这是严格读法的必然结果 不是缺陷。
 
+勾选「内容改变则立即注入」后：每个 step 执行前检查 `AGENTS.md` 内容 与上次注入的正文不同就立即注入一次 并把间隔起点重置到该轮 下一次周期注入从 `T + N` 重新开始。未勾选时只按上表的固定轮号注入。
+
+## 2.1 内容改变立即注入
+
+- 字段 `injectOnChange` 默认 `false`。
+- 勾选后每个 `agent/pre-step` 都会读取（stat 命中缓存时不重复读盘）并与 `lastInjectedHash` 比较。
+- 有变化且此前至少成功注入过一次 → 立即注入 并 `markInjected` 重置 `intervalBaseTurn = turn`。
+- 同一 turn 只检查一次 避免每 step 重复读盘或重复注入。
+- 期间若命中普通间隔轮号 仍按原规则处理；`onlyIfChanged` 只影响命中轮号 不影响变更触发的注入。
+
 ## 3. 注入位置
 
 注入消息追加在 `agent/pre-step` waterfall 返回的 `decision.messages` **尾部**，形态是一条 user 消息（`source.kind = "agents-md-periodic-inject"`）。
@@ -42,22 +52,23 @@ DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在
 - 成本随会话长度**线性增长**：`ΔT_total ≈ ΔT × floor(T_total / N)`，`ΔT ≈ ceil(injectedBytes / 3.5)`。
 - 子模块**不产生额外 turn、不产生额外模型调用**（只在已有 step 准入时改写 decision）。
 - 四个量化控制旋钮：`everyTurns`（线性缩放总成本）、`maxInjectBytes`（单次封顶）、`maxSourceBytes`（源文件过大整体跳过）、`onlyIfChanged`（内容未变则不注入）。
+- 勾选「内容改变则立即注入」后 每次内容改动都会额外注入一次 实际成本高于纯周期模式。
 
 ## 5. 设置入口
 
-**每个子模块的设置只显示在它自己的 Configure 二级页面**，不在 bundle 详情一级页面直接展示。当前子模块「记忆回声」保留 7 个可编辑字段（3 个数字项和 4 个勾选项）；Host `enabled` 字段不由表单提供。
+**每个子模块的设置只显示在它自己的 Configure 二级页面**，不在 bundle 详情一级页面直接展示。当前子模块「记忆回声」保留 8 个可编辑字段（3 个数字项和 5 个勾选项）；Host `enabled` 字段不由表单提供。
 
 用户可达路径：
 
 1. 侧栏 **Plugins** → **Installed plugins** → **dsh-tools**（打开 bundle 详情页）；
 2. 行列表里有两条：`dsh-tools` 是包根承载行（没有设置，只用来加载 Client 配置页），**记忆回声**（row id `dsh-tools-ami`）是子模块行；
-3. 点 **记忆回声** 行标题上的 **Configure**，二级页面提供 7 个设置控件，并保留「保存」「恢复默认值」和「打开 AGENTS.md」。
+3. 点 **记忆回声** 行标题上的 **Configure**，二级页面提供 8 个设置控件，并保留「保存」「恢复默认值」和「打开 AGENTS.md」。
 
 **新增子模块的方式**：`cordis.patch.yml` 插入新行（`id` = 新 row id，`name` = 新子模块的模块路径如 `dsh-tools/<name>`）；子模块 Host 实现放在 `components/<name>/`；包根 `client.js` 为新 row id 追加一个 `plugins.row.config` 注册（key `dsh-tools#<新 row id>`）。包根的裸包名承载行只需要一条，所有子模块共用。
 
 **不在 Settings 面板里**。官方机制原话：A plugin that carries its own configuration renders it on this page rather than in Settings。bundle 被关闭时该行不出现 Configure 控件，需先在 Plugins 页启用。包根承载行被单独关闭时同样会失去 Configure 页面，Host 注入不受影响。
 
-- 8 个字段全部 `.volatile()`：`settings.write` 对非 volatile 路径直接抛 `Config field "..." is not volatile`，设置表单也只投影 volatile 字段。漏掉一个字段的症状是该字段根本不进表单。
+- 9 个字段全部 `.volatile()`：`settings.write` 对非 volatile 路径直接抛 `Config field "..." is not volatile`，设置表单也只投影 volatile 字段。漏掉一个字段的症状是该字段根本不进表单。
 - 页面注册在 slot `plugins.row.config`，注册 key 为 `dsh-tools#dsh-tools-ami`（`<bundle 包名>#<row id>`），由包根 `client.js` 注册；Host settings namespace 为 `dsh-tools-ami`（= `cordis.patch.yml` 里子模块 insert entry 的 `id`）。
 - 写入走 Client 表单的 `form.mutate([{ op:"set", path:[key], value }], revision)`，持久化、revision 冲突检测、原子写与失败回滚全部由官方 `dsh-config-editor` 承担，`applies: "live"` 无需重启会话。
 - 子模块在每次 `agent/pre-step` 与 `agent/created` **现读并解包** volatile 字段（volatile 变更不会重新调用 `apply`，因此不能把解包结果缓存成闭包常量）。
@@ -74,8 +85,9 @@ DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在
 | `wrapSystemReminder` | boolean | `true` | — | **是** | 配置页 / patch |
 | `onlyIfChanged` | boolean | `false` | — | **是** | 配置页 / patch |
 | `includeSubagents` | boolean | `false` | — | **是** | 配置页 / patch |
+| `injectOnChange` | boolean | `false` | — | **是** | 配置页 / patch |
 
-**注意**：二级页面保留 7 个可编辑字段，Host `enabled` 仍由 patch 配置，未新增到 Client 表单。匹配的 override 会整体替换 config，用户 patch 必须写全 8 个字段。首次在配置页保存后，profile patch 的该行会固化为完整 8 字段，此后子模块升级修改默认值不再自动生效；点「恢复默认值」会 `unset` 表单中的 7 个字段并回落到继承层（bundle patch 的 shipped 默认值），此时若与继承层深等则删除该行的 `config` 键。
+**注意**：二级页面保留 8 个可编辑字段，Host `enabled` 仍由 patch 配置，未新增到 Client 表单。匹配的 override 会整体替换 config，用户 patch 必须写全 9 个字段。首次在配置页保存后，profile patch 的该行会固化为完整 9 字段，此后子模块升级修改默认值不再自动生效；点「恢复默认值」会 `unset` 表单中的 8 个字段并回落到继承层（bundle patch 的 shipped 默认值），此时若与继承层深等则删除该行的 `config` 键。
 
 两个字节上限字段显式声明 `.max(Number.MAX_SAFE_INTEGER)`：运行时 `readAgentsMd` 用 `Number.isSafeInteger` 校验源上限，若 schema 允许 `2**53` 这类值写入，会抛 `invalid source limit` 并静默降级为 `read-error`（每个命中轮号都不注入）。页面与 Host 两侧都拦这个上界。
 
@@ -107,7 +119,7 @@ DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在
 | # | 内容 | 影响 |
 | --- | --- | --- |
 | U3 | 压缩（compaction）是否吞掉注入 | 重锚效果未知；按「可能被吞掉、下一个命中轮号重发」设计，不假设免疫 |
-| U5 | 行「记忆回声」的 Configure 控件与 7 个控件渲染 | 机制与 `dsh-delete-session` 相同（裸包名承载行加载 Client + `plugins.row.config`）仍需重启 DSH 后**运行时实测**；包根承载行 `dsh-tools` 无设置属预期 |
+| U5 | 行「记忆回声」的 Configure 控件与 8 个控件渲染 | 机制与 `dsh-delete-session` 相同（裸包名承载行加载 Client + `plugins.row.config`）仍需重启 DSH 后**运行时实测**；包根承载行 `dsh-tools` 无设置属预期 |
 | B10 | 渲染层对未知 `source.kind` 的处理 | 显示形态未知；写入侧已由 shipped 插件证明可行 |
 | B8 | fork 后轮号是否重置 | 判定完全由轮号决定 两种情况行为都自洽 |
 | B9 | resume 是否重放同一 turn 的 step>1 | 可能造成注入位置偏移 仍只注入一次 |
@@ -186,3 +198,4 @@ DSH 工具整合包。bundle 为每个子模块插入一行，每个子模块在
 8. `lib/logic.js` 具名导出 19 个（5 常量 + 13 函数 + `resolveSettings`）。
 9. **task-3 配置页改造**：`Config` 8 个字段全部 `.volatile()`；新增 `resolveSettings` 统一解包；Client 表单注册 `plugins.row.config`。
 10. **1.0.7 单包多子模块**：`cordis.patch.yml` 插入包根承载行 `id/name = dsh-tools` 与子模块行 `id: dsh-tools-ami` / `name: 'dsh-tools/ami'`；Host 实现位于 `components/ami` 显示名「记忆回声」（row id、Config namespace、Client key 为 `dsh-tools-ami` / `dsh-tools-ami` / `dsh-tools#dsh-tools-ami`）；包根 `client.js` 为子模块行注册 Configure 页；不拆独立包 因为 DSH 的 `blockExoticSubdeps` 禁止 git 子依赖 见 10.2。
+11. **1.0.8 内容改变立即注入**：新增 `injectOnChange`（默认 `false` 全字段 volatile）；`isHitTurn` 增加间隔起点参数 由 `markInjected` 把 `intervalBaseTurn` 重置到注入轮；新增纯函数 `decideInjection` 让变更注入优先于命中轮号（具名导出 19 → 20）；Client 表单新增该勾选项（7 → 8 个可编辑字段）。
