@@ -14,5 +14,5 @@
         truncateOversize: true
         wrapSystemReminder: true
         onlyIfChanged: false
-        includeSubagents: false
         injectOnChange: false
+        includeSubagents: false

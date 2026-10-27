@@ -86,8 +86,8 @@ window.__ModuleLoader__.load({
       { key: "truncateOversize", kind: "boolean" },
       { key: "wrapSystemReminder", kind: "boolean" },
       { key: "onlyIfChanged", kind: "boolean" },
-      { key: "includeSubagents", kind: "boolean" },
       { key: "injectOnChange", kind: "boolean" },
+      { key: "includeSubagents", kind: "boolean" },
     ];
 
     // 只用 --dsw-alias token 不写死颜色值
